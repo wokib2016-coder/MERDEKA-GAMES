@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MERDEKA STRIKE MOBILE - DUAL BEBAS</title>
+<style>
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+  body {
+    margin: 0; background: #0b0f19; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    min-height: 100vh; padding: 6px; overflow-x: hidden; touch-action: manipulation;
+  }
+  .app-header {
+    width: 100%; max-width: 600px; display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(135deg, #1e293b, #0f172a); padding: 8px 12px; border-radius: 12px;
+    border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.5); margin-bottom: 6px;
+  }
+  .app-title h1 { margin: 0; font-size: 15px; color: #fbbf24; letter-spacing: 1px; text-transform: uppercase; }
+  .app-title p { margin: 0; font-size: 9px; color: #94a3b8; }
+  
+  .mode-select-bar {
+    width: 100%; max-width: 600px; display: flex; gap: 6px; margin-bottom: 6px;
+  }
+  .mode-select-btn {
+    flex: 1; padding: 8px; font-size: 11px; font-weight: bold; background: #1e293b; border: 1px solid #475569;
+    color: #94a3b8; border-radius: 8px; cursor: pointer; text-align: center;
+  }
+  .mode-select-btn.active { background: #e11d1d; color: white; border-color: #f87171; box-shadow: 0 2px 8px rgba(225,29,29,0.4); }
+
+  .hud-panel {
+    width: 100%; max-width: 600px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;
+  }
+  .hud-box {
+    background: #1e293b; border: 1px solid #334155; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;
+    display: flex; justify-content: space-between; align-items: center; color: #38bdf8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .hud-box span { color: #f1f5f9; font-family: monospace; }
+
+  #gameContainer {
+    position: relative; width: 100%; max-width: 600px; border-radius: 12px;
+    overflow: hidden; border: 2px solid #475569; box-shadow: 0 8px 30px rgba(0,0,0,0.8); background: #000;
+  }
+  canvas { display: block; width: 100%; height: auto; background: linear-gradient(to bottom, #38bdf8, #bae6fd); }
+
+  .mobile-controls {
+    width: 100%; max-width: 600px; display: flex; gap: 6px; margin-top: 6px;
+  }
+  .action-btn {
+    flex: 1; padding: 10px; background: linear-gradient(180deg, #f97316 0%, #c2410c 100%);
+    border: none; color: white; font-weight: bold; border-radius: 8px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 0 #7c2d12; cursor: pointer;
+  }
+  .action-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7c2d12; }
+  .action-btn.p1-fire { background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%); box-shadow: 0 4px 0 #1e3a8a; }
+  .action-btn.p2-fire { background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%); box-shadow: 0 4px 0 #7f1d1d; }
+
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(3, 7, 18, 0.92); z-index: 1000; justify-content: center; align-items: center;
+    padding: 16px; box-sizing: border-box; backdrop-filter: blur(5px);
+  }
+  .quiz-card {
+    background: #0f172a; border: 2px solid #38bdf8; padding: 20px; border-radius: 14px;
+    width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.9); text-align: left;
+  }
+  .quiz-card h2 { margin-top: 0; font-size: 16px; color: #fbbf24; text-align: center; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+  .q-text { font-size: 13px; line-height: 1.4; color: #e2e8f0; background: #1e293b; padding: 12px; border-radius: 8px; margin: 12px 0; border-left: 4px solid #38bdf8; }
+  .quiz-btns { display: flex; gap: 10px; margin-top: 15px; }
+  .quiz-btns button {
+    flex: 1; padding: 12px; font-size: 12px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white;
+  }
+  .btn-benar { background: #16a34a; box-shadow: 0 3px 0 #14532d; }
+  .btn-salah { background: #dc2626; box-shadow: 0 3px 0 #7f1d1d; }
+  .quiz-feedback { margin-top: 10px; font-size: 12px; font-weight: bold; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-title">
+    <h1>MERDEKA STRIKE</h1>
+    <p>Simulasi Taktis Fisika & Ketapel HP</p>
+  </div>
+  <div style="font-size: 10px; background: #334155; padding: 4px 8px; border-radius: 6px; color: #fbbf24; font-weight: bold;" id="modeBadge">DUAL PLAYER</div>
+</div>
+
+<div class="mode-select-bar">
+  <button id="btnPvp" class="mode-select-btn active" onclick="setGameMode('pvp')">👥 DUAL PLAYER (BEBAS)</button>
+  <button id="btnAi" class="mode-select-btn" onclick="setGameMode('ai')">🤖 VS LAWAN AI</button>
+</div>
+
+<div class="hud-panel">
+  <div class="hud-box" id="p1HudTitle">P1 (KIRI): <span id="p1HpStr">❤️❤️❤️❤️❤️</span></div>
+  <div class="hud-box" id="p2HudTitle">P2 (KANAN): <span id="p2HpStr">❤️❤️❤️❤️❤️</span></div>
+</div>
+
+<div id="gameContainer">
+  <canvas id="cv" width="600" height="350"></canvas>
+</div>
+
+<div class="mobile-controls" id="dualControls">
+  <button class="action-btn p1-fire" onclick="fireTank(1)">🔥 TEMBAK P1</button>
+  <button class="action-btn p2-fire" onclick="fireTank(2)">💥 TEMBAK P2</button>
+</div>
+
+<div class="mobile-controls" id="aiControls" style="display:none;">
+  <button class="action-btn" onclick="fireTank(1)">🔥 TEMBAK (P1)</button>
+  <button class="action-btn secondary" onclick="resetShot()">🔄 Reset Posisi</button>
+</div>
+
+<!-- Modal Kuis Edukasi -->
+<div id="quizModal" class="modal-overlay">
+  <div class="quiz-card">
+    <h2 id="quizTitle">UJIAN TAKTIS FISIKA</h2>
+    <div class="q-text" id="quizQuestionBox">Memuat soal...</div>
+    <div class="quiz-btns">
+      <button class="btn-benar" onclick="submitAnswer(true)">BENAR</button>
+      <button class="btn-salah" onclick="submitAnswer(false)">SALAH</button>
+    </div>
+    <div class="quiz-feedback" id="quizFeedback"></div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const GROUND_Y = H * 0.7;
+
+let gameMode = 'pvp'; // 'pvp' atau 'ai'
+let aiStage = 1; 
+let playerTier = 1;
+
+let p1 = { x: 80, minX: 40, maxX: 220, dir: 1, speed: 0.8, y: GROUND_Y, hp: 5, ammo: 20 };
+let p2 = { x: 520, minX: 380, maxX: 560, dir: -1, speed: 0.8, y: GROUND_Y, hp: 5, ammo: 20 };
+
+let projectiles = []; // Mendukung banyak proyektil sekaligus agar bebas menembak
+let explosions = [];
+let particles = [];
+let screenShake = 0;
+
+let draggingTank = null; // 1 atau 2
+let dragStart = { x: 80, y: GROUND_Y - 20 };
+let dragCurrent = { x: 80, y: GROUND_Y - 20 };
+
+const quizPool = [
+  { q: "Pada Gerak Lurus Beraturan (GLB), kecepatan benda bernilai tetap dan percepatannya nol.", a: true, exp: "Benar! Tidak ada percepatan pada GLB." },
+  { q: "Pengereman mendadak pada mobil termasuk contoh dari GLBB dipercepat.", a: false, exp: "Salah! Pengereman adalah GLBB diperlambat." },
+  { q: "Besar percepatan pada Gerak Lurus Berubah Beraturan (GLBB) bernilai konstan.", a: true, exp: "Benar! Ciri utama GLBB adalah percepatan tetap." },
+  { q: "Pada Gerak Jatuh Bebas, massa benda sangat mempengaruhi waktu jatuh di ruang hampa.", a: false, exp: "Salah! Di ruang hampa, semua benda jatuh dengan percepatan sama." },
+  { q: "Komponen kecepatan horizontal (vx) pada gerak parabola ideal bernilai tetap (konstan).", a: true, exp: "Benar! Sumbu x bersifat GLB tanpa hambatan udara." },
+  { q: "Jangkauan maksimum pada gerak parabola tanpa hambatan dicapai pada sudut 45 derajat.", a: true, exp: "Benar! Sudut 45° memberikan jarak terjauh." }
+];
+let activeQuizCallback = null;
+let quizFirstTry = true;
+let currentQuizObj = null;
+
+function setGameMode(mode) {
+  gameMode = mode;
+  document.getElementById('btnPvp').classList.toggle('active', mode === 'pvp');
+  document.getElementById('btnAi').classList.toggle('active', mode === 'ai');
+  document.getElementById('modeBadge').textContent = mode === 'pvp' ? 'DUAL PLAYER' : 'VS AI';
+  document.getElementById('p2HudTitle').innerHTML = mode === 'pvp' ? 'P2 (KANAN): <span id="p2HpStr">❤️❤️❤️❤️❤️</span>' : 'AI LAWAN: <span id="p2HpStr">❤️❤️❤️❤️❤️</span>';
+  document.getElementById('dualControls').style.display = mode === 'pvp' ? 'flex' : 'none';
+  document.getElementById('aiControls').style.display = mode === 'ai' ? 'flex' : 'none';
+  resetMatch();
+}
+
+function resetMatch() {
+  p1.hp = 5; p1.ammo = 20; p1.x = 80;
+  p2.hp = 5; p2.ammo = 20; p2.x = 520;
+  projectiles = [];
+  updateHUD();
+}
+
+cv.addEventListener('touchstart', handleTouchStart, {passive: false});
+cv.addEventListener('touchmove', handleTouchMove, {passive: false});
+cv.addEventListener('touchend', handleTouchEnd);
+cv.addEventListener('mousedown', handleMouseDown);
+cv.addEventListener('mousemove', handleMouseMove);
+cv.addEventListener('mouseup', handleMouseUp);
+
+function getCanvasPos(e) {
+  const rect = cv.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * (cv.width / rect.width),
+    y: (clientY - rect.top) * (cv.height / rect.height)
+  };
+}
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+  if (Math.hypot(pos.x - p1.x, pos.y - (p1.y - 20)) < 60) {
+    if (p1.ammo <= 0) { triggerQuizForAmmo(1); return; }
+    draggingTank = 1;
+    dragStart = { x: p1.x, y: p1.y - 20 };
+    dragCurrent = pos;
+  } else if (gameMode === 'pvp' && Math.hypot(pos.x - p2.x, pos.y - (p2.y - 20)) < 60) {
+    if (p2.ammo <= 0) { triggerQuizForAmmo(2); return; }
+    draggingTank = 2;
+    dragStart = { x: p2.x, y: p2.y - 20 };
+    dragCurrent = pos;
+  }
+}
+function handleTouchMove(e) { if (!draggingTank) return; e.preventDefault(); dragCurrent = getCanvasPos(e); }
+function handleTouchEnd(e) { if (!draggingTank) return; releaseDragShot(); }
+
+function handleMouseDown(e) {
+  const pos = getCanvasPos(e);
+  if (Math.hypot(pos.x - p1.x, pos.y - (p1.y - 20)) < 60) {
+    if (p1.ammo <= 0) { triggerQuizForAmmo(1); return; }
+    draggingTank = 1;
+    dragStart = { x: p1.x, y: p1.y - 20 };
+    dragCurrent = pos;
+  } else if (gameMode === 'pvp' && Math.hypot(pos.x - p2.x, pos.y - (p2.y - 20)) < 60) {
+    if (p2.ammo <= 0) { triggerQuizForAmmo(2); return; }
+    draggingTank = 2;
+    dragStart = { x: p2.x, y: p2.y - 20 };
+    dragCurrent = pos;
+  }
+}
+function handleMouseMove(e) { if (!draggingTank) return; dragCurrent = getCanvasPos(e); }
+function handleMouseUp(e) { if (!draggingTank) return; releaseDragShot(); }
+
+function releaseDragShot() {
+  const tank = draggingTank === 1 ? p1 : p2;
+  tank.ammo--;
+  updateHUD();
+
+  let dx = dragStart.x - dragCurrent.x;
+  let dy = dragStart.y - dragCurrent.y;
+  let powerFactor = 0.13 * (draggingTank === 1 ? (1 + (playerTier * 0.05)) : 1);
+  if (gameMode === 'pvp' && draggingTank === 2) dx = -dx;
+
+  projectiles.push({
+    x: tank.x, y: tank.y - 20,
+    vx: dx * powerFactor, vy: dy * powerFactor,
+    trail: [], shooter: draggingTank
+  });
+  draggingTank = null;
+}
+
+function fireTank(tankNum) {
+  const tank = tankNum === 1 ? p1 : p2;
+  if (tank.ammo <= 0) { triggerQuizForAmmo(tankNum); return; }
+  tank.ammo--;
+  updateHUD();
+
+  let dx = tankNum === 1 ? -15 : 15;
+  let dy = -12;
+  projectiles.push({
+    x: tank.x, y: tank.y - 20,
+    vx: dx * (tankNum === 1 ? (1 + playerTier * 0.05) : 1), vy: dy,
+    trail: [], shooter: tankNum
+  });
+}
+
+function resetShot() {
+  projectiles = [];
+}
+
+function aiTurnShoot() {
+  if (gameMode !== 'ai' || !p2.active) return;
+  p2.ammo--;
+  updateHUD();
+
+  let speed = 75 + (aiStage * 4);
+  let angle = Math.PI / 4 + (Math.random() * 0.2 - 0.1);
+
+  projectiles.push({
+    x: p2.x, y: p2.y - 20,
+    vx: -Math.cos(angle) * (speed * 0.14),
+    vy: -Math.sin(angle) * (speed * 0.14),
+    trail: [], shooter: 2
+  });
+}
+
+function triggerQuizForAmmo(playerNum) {
+  triggerQuiz((isFirst) => {
+    if (playerNum === 1) p1.ammo += 10; else p2.ammo += 10;
+    updateHUD();
+  }, `P${playerNum} AMUNISI HABIS`);
+}
+
+function triggerQuiz(callback, customTitle = "UJIAN TAKTIS FISIKA") {
+  activeQuizCallback = callback;
+  quizFirstTry = true;
+  currentQuizObj = quizPool[Math.floor(Math.random() * quizPool.length)];
+  document.getElementById('quizTitle').textContent = customTitle;
+  document.getElementById('quizQuestionBox').textContent = currentQuizObj.q;
+  document.getElementById('quizFeedback').textContent = '';
+  document.getElementById('quizModal').style.display = 'flex';
+}
+
+function submitAnswer(ans) {
+  const fb = document.getElementById('quizFeedback');
+  if (ans === currentQuizObj.a) {
+    if (quizFirstTry) {
+      fb.innerHTML = `<span style="color:#4ade80;">✔ SEMPURNA! ${currentQuizObj.exp}<br><b>Bonus: Tank Pulih + Peluru Terisi!</b></span>`;
+    } else {
+      fb.innerHTML = `<span style="color:#fbbf24;">✔ Benar! ${currentQuizObj.exp}<br><b>Tank Pulih (10 Peluru).</b></span>`;
+    }
+    setTimeout(() => {
+      document.getElementById('quizModal').style.display = 'none';
+      if (activeQuizCallback) activeQuizCallback(quizFirstTry);
+    }, 1600);
+  } else {
+    quizFirstTry = false;
+    fb.innerHTML = `<span style="color:#f87171;">✖ Kurang Tepat! ${currentQuizObj.exp}<br><b>Coba soal berikutnya sampai benar!</b></span>`;
+    setTimeout(() => {
+      currentQuizObj = quizPool[Math.floor(Math.random() * quizPool.length)];
+      document.getElementById('quizQuestionBox').textContent = currentQuizObj.q;
+      fb.textContent = '';
+    }, 1800);
+  }
+}
+
+function updateGame() {
+  if (screenShake > 0) screenShake--;
+
+  p1.x += p1.dir * p1.speed;
+  if (p1.x > p1.maxX || p1.x < p1.minX) p1.dir *= -1;
+
+  p2.x += p2.dir * p2.speed;
+  if (p2.x > p2.maxX || p2.x < p2.minX) p2.dir *= -1;
+
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    let p = projectiles[i];
+    p.trail.push({ x: p.x, y: p.y });
+    if (p.trail.length > 20) p.trail.shift();
+    
+    p.vy += 0.22; 
+    p.x += p.vx; p.y += p.vy;
+
+    let targetX = p.shooter === 1 ? p2.x : p1.x;
+    let targetY = p.shooter === 1 ? p2.y : p1.y;
+    
+    if (Math.hypot(p.x - targetX, p.y - (targetY - 15)) < 40) {
+      createExplosion(targetX, targetY - 15, 50);
+      screenShake = 15;
+      
+      if (p.shooter === 1) {
+        p2.hp--;
+        updateHUD();
+        if (p2.hp <= 0) {
+          createExplosion(targetX, targetY - 15, 100);
+          triggerQuiz((isFirst) => {
+            if (gameMode === 'ai') {
+              aiStage = Math.min(3, aiStage + 1);
+              playerTier++;
+              document.getElementById('levelBadge').textContent = `TAHAP ${aiStage}`;
+            }
+            resetMatch();
+          }, "P1 MENANG - TANK LAWAN HANCUR");
+        }
+      } else {
+        p1.hp--;
+        updateHUD();
+        if (p1.hp <= 0) {
+          createExplosion(targetX, targetY - 15, 100);
+          triggerQuiz((isFirst) => { resetMatch(); }, "P2/AI MENANG - TANK P1 HANCUR");
+        }
+      }
+      projectiles.splice(i, 1);
+    } else if (p.y > GROUND_Y || p.x < 0 || p.x > W) {
+      createExplosion(p.x, Math.min(p.y, GROUND_Y), 25);
+      projectiles.splice(i, 1);
+      if (gameMode === 'ai' && p.shooter === 1 && p2.active) {
+        setTimeout(aiTurnShoot, 800);
+      }
+    }
+  }
+}
+
+function createExplosion(x, y, size) {
+  explosions.push({ x, y, r: 5, maxR: size, alpha: 1.0 });
+  for(let i=0; i<15; i++) {
+    particles.push({ x, y, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, alpha: 1.0, color: '#fbbf24' });
+  }
+}
+
+function renderGame() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (screenShake > 0) {
+    ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+  }
+
+  ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, W, GROUND_Y);
+  ctx.fillStyle = '#15803d'; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  ctx.fillStyle = '#166534';
+  ctx.beginPath(); ctx.arc(300, GROUND_Y, 35, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#451a03'; ctx.fillRect(296, GROUND_Y - 5, 8, 35);
+
+  drawTank(p1.x, p1.y, '#1e3a8a', playerTier);
+  drawTank(p2.x, p2.y, '#b91c1c', 1);
+
+  if (draggingTank) {
+    const activeTank = draggingTank === 1 ? p1 : p2;
+    ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(activeTank.x, activeTank.y - 20); ctx.lineTo(dragCurrent.x, dragCurrent.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  projectiles.forEach(p => {
+    p.trail.forEach((t, idx) => {
+      ctx.fillStyle = `rgba(250, 204, 21, ${idx/p.trail.length})`;
+      ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2); ctx.fill();
+  });
+
+  explosions.forEach(e => {
+    ctx.strokeStyle = `rgba(249, 115, 22, ${e.alpha})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); ctx.stroke();
+    e.r += 2.5; e.alpha -= 0.06;
+  });
+  explosions = explosions.filter(e => e.alpha > 0);
+
+  particles.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 3, 3);
+    p.x += p.vx; p.y += p.vy; p.alpha -= 0.05;
+  });
+  particles = particles.filter(p => p.alpha > 0);
+
+  ctx.restore();
+}
+
+function drawTank(x, y, color, tier) {
+  ctx.fillStyle = '#334155';
+  for(let i=-2; i<=2; i++) {
+    ctx.beginPath(); ctx.arc(x + i*9, y, 5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.roundRect(x - 24, y - 16, 48, 16, 4); ctx.fill();
+  ctx.fillStyle = '#64748b';
+  ctx.beginPath(); ctx.arc(x, y - 16, 10, Math.PI, 0); ctx.fill();
+  
+  ctx.save(); ctx.translate(x, y - 16);
+  ctx.fillStyle = tier >= 3 ? '#fbbf24' : '#1e293b';
+  ctx.fillRect(0, -2, 25 + (tier*5), 5 + tier);
+  ctx.restore();
+}
+
+function updateHUD() {
+  document.getElementById('p1HpStr').textContent = '❤️'.repeat(Math.max(0, p1.hp)) + ` (${p1.ammo}Plr)`;
+  document.getElementById('p2HpStr').textContent = '❤️'.repeat(Math.max(0, p2.hp)) + ` (${p2.ammo}Plr)`;
+}
+
+function loop() {
+  updateGame();
+  renderGame();
+  requestAnimationFrame(loop);
+}
+loop();
+updateHUD();
+</script>
+</body>
+</html>
